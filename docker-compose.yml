@@ -1,0 +1,15 @@
+services:
+  eecust-power-monitor:
+    build: .
+    image: jamesyasr/ecust-power-monitor:1.0
+    ports:
+      - "8080:8080"
+    volumes:
+      - /your/path/data:/app/data  # 持久化数据库
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATA_DIR=/app/data  # 明确设置数据目录
+    restart: always
+    container_name: ecust-power-monitor
+    # 确保数据目录权限
+    command: python app.py

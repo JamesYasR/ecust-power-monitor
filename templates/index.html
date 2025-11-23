@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电量监控系统</title>
+
+    <!-- 引入必要的库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- 引入jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap Datepicker -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/locales/bootstrap-datepicker.zh-CN.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            min-height: 700px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: #2c3e50;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .room-info {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .measure-btn, .config-btn {
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .measure-btn {
+            background: #27ae60;
+        }
+
+        .measure-btn:hover {
+            background: #219653;
+        }
+
+        .measure-btn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        .config-btn {
+            background: #e74c3c;
+        }
+
+        .config-btn:hover {
+            background: #c0392b;
+        }
+
+        .chart-area {
+            flex: 1;
+            padding: 20px 30px 10px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .chart-container {
+            position: relative;
+            flex: 1;
+            min-height: 400px;
+        }
+
+        .chart-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-shrink: 0;
+        }
+
+        .time-btn {
+            padding: 8px 16px;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .time-btn:hover, .time-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .current-balance {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #2c3e50;
+        }
+
+        .balance-value {
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 1.3em;
+        }
+
+        .status-message {
+            padding: 10px;
+            margin: 10px 30px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .no-data-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 1.2em;
+        }
+
+        /* 日期选择器模态框样式 */
+        .date-range-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            min-width: 400px;
+        }
+
+        .date-inputs {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .date-input-group {
+            flex: 1;
+        }
+
+        .date-input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .date-input-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .date-range-btn {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .date-range-btn:hover, .date-range-btn.active {
+            background: #8e44ad;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="room-info" id="roomInfo">奉贤校区3号楼103室 - 电量监控</div>
+            <div class="button-group">
+                <button class="measure-btn" id="measureBtn">测量</button>
+                <button class="config-btn" id="configBtn">配置</button>
+            </div>
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+
+        <div class="chart-area">
+            <div class="current-balance">
+                当前剩余电量: <span class="balance-value" id="currentBalance">--</span> 度
+                <span id="todayMinBalanceContainer" style="display: none;">
+                    (今日最低: <span id="todayMinBalance">--</span> 度)
+                </span>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="electricityChart"></canvas>
+                <div id="noDataMessage" class="no-data-message" style="display: none;">
+                    暂无数据，请点击"测量"按钮获取电量信息
+                </div>
+            </div>
+
+            <div class="chart-controls">
+                <button class="time-btn active" data-range="day">最近24小时</button>
+                <button class="time-btn" data-range="week">最近一周</button>
+                <button class="time-btn" data-range="month">最近一月</button>
+                <button class="time-btn date-range-btn" id="customRangeBtn">自定义时间段</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义时间段选择模态框 -->
+    <div id="dateRangeModal" class="date-range-modal">
+        <div class="modal-content">
+            <h3>选择时间范围</h3>
+            <div class="date-inputs">
+                <div class="date-input-group">
+                    <label for="startDate">开始日期:</label>
+                    <input type="text" id="startDate" class="datepicker" readonly>
+                </div>
+                <div class="date-input-group">
+                    <label for="endDate">结束日期:</label>
+                    <input type="text" id="endDate" class="datepicker" readonly>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button id="cancelDateRange" class="btn-secondary">取消</button>
+                <button id="applyDateRange" class="btn-primary">应用</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let electricityChart;
+        let currentRange = 'month';
+
+        // 显示状态消息
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message status-${type}`;
+            statusEl.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 初始化日期选择器
+        function initDatePickers() {
+            // 确保jQuery已加载
+            if (typeof $ === 'undefined') {
+                console.error('jQuery未正确加载');
+                showStatus('页面加载失败：缺少必要的库文件', 'error');
+                return;
+            }
+
+            $('.datepicker').datepicker({
+                format: 'yyyy-mm-dd',
+                language: 'zh-CN',
+                autoclose: true
+            });
+
+            // 设置默认日期范围为最近30天
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+
+            $('#startDate').datepicker('update', startDate);
+            $('#endDate').datepicker('update', endDate);
+        }
+
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('electricityChart');
+            if (!ctx) {
+                console.error("无法找到图表canvas元素");
+                showStatus('图表初始化失败', 'error');
+                return;
+            }
+
+            // 确保Canvas有尺寸
+            ctx.style.width = '100%';
+            ctx.style.height = '100%';
+
+            electricityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: '剩余电量 (度)',
+                        data: [],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                tooltipFormat: 'yyyy-MM-dd HH:mm'
+                            },
+                            title: {
+                                display: true,
+                                text: '时间'
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: '电量 (度)'
+                            },
+                            beginAtZero: true,
+                            suggestedMax: 50,
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 测量按钮
+            document.getElementById('measureBtn').addEventListener('click', measureElectricity);
+
+            // 配置按钮
+            document.getElementById('configBtn').addEventListener('click', function() {
+                window.location.href = '/config';
+            });
+
+            // 时间范围按钮
+            document.querySelectorAll('.time-btn').forEach(btn => {
+                if (btn.id !== 'customRangeBtn') {
+                    btn.addEventListener('click', function() {
+                        const range = this.getAttribute('data-range');
+                        updateChart(range);
+                    });
+                }
+            });
+
+            // 自定义时间段按钮
+            document.getElementById('customRangeBtn').addEventListener('click', function() {
+                document.getElementById('dateRangeModal').style.display = 'flex';
+            });
+
+            // 模态框按钮
+            document.getElementById('applyDateRange').addEventListener('click', function() {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (!startDate || !endDate) {
+                    showStatus('请选择开始和结束日期', 'error');
+                    return;
+                }
+
+                if (new Date(startDate) > new Date(endDate)) {
+                    showStatus('开始日期不能晚于结束日期', 'error');
+                    return;
+                }
+
+                document.getElementById('dateRangeModal').style.display = 'none';
+                updateChart('custom', startDate, endDate);
+            });
+
+            document.getElementById('cancelDateRange').addEventListener('click', function() {
+                document.getElementById('dateRangeModal').style.display = 'none';
+            });
+        }
+
+        // 更新图表数据
+        async function updateChart(range, customStart, customEnd) {
+            try {
+                currentRange = range;
+
+                // 更新按钮状态
+                document.querySelectorAll('.time-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.getAttribute('data-range') === range) {
+                        btn.classList.add('active');
+                    }
+                });
+
+                let url = `/api/history?range=${range}`;
+                if (customStart && customEnd) {
+                    url = `/api/history/daily?start=${customStart}&end=${customEnd}`;
+                    document.getElementById('customRangeBtn').classList.add('active');
+                    document.getElementById('customRangeBtn').textContent =
+                        `${customStart} 至 ${customEnd}`;
+                } else {
+                    document.getElementById('customRangeBtn').classList.remove('active');
+                    document.getElementById('customRangeBtn').textContent = '自定义时间段';
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    document.getElementById('noDataMessage').style.display = 'none';
+
+                    // 更新图表数据
+                    electricityChart.data.datasets[0].data = data.map(item => ({
+                        x: new Date(item.timestamp),
+                        y: item.balance
+                    }));
+
+                    // 根据范围调整时间单位
+                    electricityChart.options.scales.x.time.unit = range === 'day' ? 'hour' : 'day';
+                    electricityChart.update();
+
+                    // 更新当前电量显示
+                    const latest = data[data.length - 1];
+                    document.getElementById('currentBalance').textContent = latest.balance.toFixed(1);
+
+                    // 显示今日最低电量
+                    const today = new Date().toISOString().split('T')[0];
+                    const todayData = data.filter(item => {
+                        const itemDate = new Date(item.timestamp).toISOString().split('T')[0];
+                        return itemDate === today;
+                    });
+                    if (todayData.length > 0) {
+                        const todayMin = Math.min(...todayData.map(item => item.balance));
+                        document.getElementById('todayMinBalance').textContent = todayMin.toFixed(1);
+                        document.getElementById('todayMinBalanceContainer').style.display = 'inline';
+                    }
+                } else {
+                    document.getElementById('noDataMessage').style.display = 'block';
+                    electricityChart.data.datasets[0].data = [];
+                    electricityChart.update();
+                    document.getElementById('currentBalance').textContent = '--';
+                    document.getElementById('todayMinBalanceContainer').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('更新图表失败:', error);
+                showStatus('加载数据失败: ' + error.message, 'error');
+            }
+        }
+
+        // 立即测量电量
+        async function measureElectricity() {
+            const btn = document.getElementById('measureBtn');
+            const originalText = btn.textContent;
+
+            try {
+                btn.disabled = true;
+                btn.textContent = '测量中...';
+
+                const response = await fetch('/api/measure', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showStatus('测量成功: ' + result.data.balance + '度', 'success');
+                    document.getElementById('currentBalance').textContent = result.data.balance.toFixed(1);
+                    await updateChart(currentRange);
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('测量失败:', error);
+                showStatus('测量失败: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加加载延迟确保所有元素就绪
+            setTimeout(() => {
+                try {
+                    initChart();
+                    initDatePickers();
+                    setupEventListeners();
+                    updateChart(currentRange);
+                    console.log('页面初始化完成');
+                } catch (error) {
+                    console.error('初始化失败:', error);
+                    showStatus('页面初始化失败: ' + error.message, 'error');
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

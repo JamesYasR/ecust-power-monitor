@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统配置 - 电量监控</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: #2c3e50;
+            color: white;
+        }
+
+        .back-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #2980b9;
+        }
+
+        .page-title {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .config-form {
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .section-title {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            font-size: 1.2em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #34495e;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .status-message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .url-example {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <button class="back-btn" onclick="window.location.href='/'">返回</button>
+            <div class="page-title">系统配置</div>
+            <div></div> <!-- 占位元素 -->
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+
+        <form id="configForm" class="config-form">
+            <!-- 提醒设置 -->
+            <div class="form-section">
+                <h3 class="section-title">提醒设置</h3>
+
+                <div class="form-group">
+                    <label for="threshold">低电量提醒阈值 (度)</label>
+                    <input type="number" step="0.1" name="threshold" id="threshold"
+                           value="{{ config.threshold }}" required>
+                    <div class="url-example">当电量低于此值时发送提醒</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="query_interval">查询间隔 (分钟)</label>
+                    <input type="number" name="query_interval" id="query_interval"
+                           value="{{ config.query_interval }}" required>
+                    <div class="url-example">系统自动查询电量的时间间隔</div>
+                </div>
+            </div>
+
+            <!-- 电量查询模块配置 -->
+            <div class="form-section">
+                <h3 class="section-title">电量查询模块配置</h3>
+
+                <div class="form-group">
+                    <label for="electricity_url">查询URL</label>
+                    <input type="url" name="electricity_url" id="electricity_url"
+                           value="{{ config.electricity_params.url }}" required>
+                    <div class="url-example">示例: https://yktyd.ecust.edu.cn/epay/wxpage/wanxiao/eleresult?sysid=1&roomid=103&areaid=2&buildid=3</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="html_encode">网页编码</label>
+                    <select name="html_encode" id="html_encode">
+                        <option value="utf-8" {% if config.electricity_params.html_encode == 'utf-8' %}selected{% endif %}>UTF-8</option>
+                        <option value="gbk" {% if config.electricity_params.html_encode == 'gbk' %}selected{% endif %}>GBK</option>
+                        <option value="gb2312" {% if config.electricity_params.html_encode == 'gb2312' %}selected{% endif %}>GB2312</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="timeout">超时时间 (秒)</label>
+                    <input type="number" name="timeout" id="timeout"
+                           value="{{ config.electricity_params.timeout }}" required>
+                    <div class="url-example">网络请求超时时间</div>
+                </div>
+            </div>
+            <!-- 在config.html的推送配置部分添加 -->
+                <div class="form-group">
+                    <label>推送测试</label>
+                    <button type="button" id="testPush" class="btn btn-info">测试推送</button>
+                    <small class="form-text text-muted">点击测试当前推送配置是否正常工作</small>
+                </div>
+            <!-- 推送消息模块配置 -->
+            <div class="form-section">
+                <h3 class="section-title">推送消息模块配置</h3>
+
+                <div class="form-group">
+                    <label for="push_token">PushPlus Token</label>
+                    <input type="text" name="push_token" id="push_token"
+                           value="{{ config.push_params.token }}" required>
+                    <div class="url-example">在PushPlus官网获取的令牌</div>
+                </div>
+                <div class="form-group">
+                    <label>PushPlus群组编码（话题编码）</label>
+                    <input type="text" class="form-control" name="topic" 
+                         value="{{ config.push_params.topic if config.push_params.topic else '' }}"
+                         placeholder="填写PushPlus群组/话题编码">
+                    <small class="form-text text-muted">
+                        如需群组推送，请填写PushPlus群组或话题编码。留空则发送给个人。
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label>推送渠道</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="push_channels" value="wechat"
+                                   {% if 'wechat' in config.push_params.channel %}checked{% endif %}>
+                            微信
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="push_channels" value="mail"
+                                   {% if 'mail' in config.push_params.channel %}checked{% endif %}>
+                            邮箱
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="push_channels" value="sms"
+                                   {% if 'sms' in config.push_params.channel %}checked{% endif %}>
+                            短信
+                        </label>
+                    </div>
+                    <div class="url-example">至少选择一个推送渠道</div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">保存配置</button>
+                <button type="button" class="btn btn-secondary" id="resetBtn">恢复默认</button>
+            </div>
+        </form>
+    </div>
+
+
+    <script>
+// 测试推送功能
+document.getElementById('testPush').addEventListener('click', function() {
+    fetch('/api/test-push', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+    })
+    .catch(error => {
+        alert('测试失败: ' + error);
+    });
+});
+</script>
+    <script>
+        // 显示状态消息
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status-message status-${type}`;
+            statusEl.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // 表单提交处理
+        document.getElementById('configForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // 检查是否至少选择了一个推送渠道
+            const checkedChannels = document.querySelectorAll('input[name="push_channels"]:checked');
+            if (checkedChannels.length === 0) {
+                showStatus('请至少选择一个推送渠道', 'error');
+                return;
+            }
+
+            // 检查URL格式
+            const urlInput = document.getElementById('electricity_url');
+            if (!urlInput.value.startsWith('http')) {
+                showStatus('请输入有效的URL地址', 'error');
+                return;
+            }
+
+            try {
+                const formData = new FormData(this);
+
+                // 获取选中的渠道
+                const channels = [];
+                checkedChannels.forEach(channel => {
+                    channels.push(channel.value);
+                });
+
+                // 添加渠道到表单数据
+                formData.append('push_channels', channels.join(','));
+
+                // 显示加载状态
+                const submitBtn = document.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                submitBtn.textContent = '保存中...';
+                submitBtn.disabled = true;
+
+                // 发送表单数据
+                const response = await fetch('/config', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showStatus('配置已成功保存', 'success');
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                console.error('保存配置失败:', error);
+                showStatus('保存配置失败: ' + error.message, 'error');
+            } finally {
+                // 恢复按钮状态
+                const submitBtn = document.querySelector('button[type="submit"]');
+                submitBtn.textContent = '保存配置';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 恢复默认配置
+        document.getElementById('resetBtn').addEventListener('click', async function() {
+            if (confirm('确定要恢复默认配置吗？此操作不可撤销。')) {
+                try {
+                    const resetBtn = document.getElementById('resetBtn');
+                    const originalText = resetBtn.textContent;
+                    resetBtn.textContent = '重置中...';
+                    resetBtn.disabled = true;
+
+                    const response = await fetch('/config/reset', {
+                        method: 'POST'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误! 状态: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.status === 'success') {
+                        showStatus('已恢复默认配置', 'success');
+                        // 刷新页面以加载默认配置
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        throw new Error(result.message);
+                    }
+                } catch (error) {
+                    console.error('恢复默认配置失败:', error);
+                    showStatus('恢复默认配置失败: ' + error.message, 'error');
+                } finally {
+                    const resetBtn = document.getElementById('resetBtn');
+                    resetBtn.textContent = '恢复默认';
+                    resetBtn.disabled = false;
+                }
+            }
+        });
+
+        // 页面加载完成后隐藏加载状态
+        document.addEventListener('DOMContentLoaded', function() {
+            // 添加简单的URL验证
+            const urlInput = document.getElementById('electricity_url');
+            urlInput.addEventListener('blur', function() {
+                if (this.value && !this.value.startsWith('http')) {
+                    showStatus('URL格式不正确，应以http://或https://开头', 'error');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

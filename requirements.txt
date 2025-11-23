@@ -1,0 +1,5 @@
+flask
+flask-apscheduler
+requests
+beautifulsoup4
+gunicorn==21.2.0
