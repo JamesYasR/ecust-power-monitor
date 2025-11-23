@@ -73,6 +73,6 @@ sudo chmod 755 /your/docker/path/data
 ```
 
 
+<img width="2290" height="1223" alt="image" src="https://github.com/user-attachments/assets/d694039c-4598-4294-86c2-8601f0ac9e44" />
+<img width="1808" height="1054" alt="image" src="https://github.com/user-attachments/assets/2aa099c1-4b4c-4320-8f19-1c6aa0373d54" />
 
-<img width="2233" height="1220" alt="image" src="https://github.com/user-attachments/assets/55fac7cb-c35b-438e-94f9-2a7a0d680985" />
-<img width="1198" height="1063" alt="image" src="https://github.com/user-attachments/assets/7a41f5ff-b193-4b76-a0e0-939837cbe0b1" />
