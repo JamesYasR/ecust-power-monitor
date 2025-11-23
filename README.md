@@ -38,7 +38,7 @@ python环境已经提供在requirements.txt里面
 services:
   eecust-power-monitor:
     build: .
-    image: jamesyasr/ecust-power-monitor:1.0
+    image: crpi-kp4alpljgmcdwnr9.cn-hangzhou.personal.cr.aliyuncs.com/jamesyasr/ecust-power-monitor:1.0
     ports:
       - "8080:8080"
     volumes:
