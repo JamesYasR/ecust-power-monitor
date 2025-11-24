@@ -4,6 +4,11 @@ FROM python:3.11-slim
 # 设置环境变量，防止Python输出缓冲，确保日志实时输出
 ENV PYTHONUNBUFFERED=1
 
+# 添加时区环境变量，亚洲，上海
+ENV TimeZone=Asia/Shanghai
+# 使用软连接，并且将时区配置覆盖/etc/timezone
+RUN ln -snf /usr/share/zoneinfo/$TimeZone /etc/localtime && echo $TimeZone > /etc/timezone
+
 # 设置容器内的工作目录
 WORKDIR /app
 
@@ -32,5 +37,3 @@ USER apprunner
 # 暴露Flask应用运行的端口
 EXPOSE 8080
 
-# 设置容器启动时运行的命令
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "app:app"]
