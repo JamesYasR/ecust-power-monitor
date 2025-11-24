@@ -28,7 +28,9 @@ class PushPlusNotifier:
     def generate_variation_content(self, base_content):
         """生成有变化的推送内容，避免重复检测"""
         timestamp = datetime.now().strftime('%H:%M:%S')
+        current_time = datetime.now().strftime('%H:%M:%S')
         random_suffix = random.randint(1000, 9999)
+        # 定义 current_time 变量
 
         # 多种变化模板
         variation_templates = [
