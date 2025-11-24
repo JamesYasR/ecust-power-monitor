@@ -62,7 +62,7 @@
             gap: 10px;
         }
 
-        .measure-btn, .config-btn {
+        .measure-btn, .config-btn, .recharge-btn {
             color: white;
             border: none;
             padding: 10px 20px;
@@ -71,7 +71,22 @@
             font-size: 1em;
             transition: all 0.3s;
         }
+        /* ===== Recharge-btn 专用样式 ===== */
+        .recharge-btn {
+            background: #ffffff;          /* 默认白色 */
+            color: #333;
+        }
 
+        .recharge-btn:hover {
+            background: #f2f2f2;          /*  Hover 时略暗一点 */
+            color: #333;
+        }
+
+        .recharge-btn:disabled {
+            background: #7f8c8d;          /* 与 measure-btn 相同的禁灰 */
+            color: #333;
+            cursor: not-allowed;
+        }
         .measure-btn {
             background: #27ae60;
         }
@@ -259,8 +274,9 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="room-info" id="roomInfo">奉贤校区3号楼103室 - 电量监控</div>
+            <div class="room-info" id="roomInfo">{{ room_info }} - 电量监控</div>
             <div class="button-group">
+                <button class="recharge-btn" id="quickRechargeBtn">💰➡️⚡加载中...</button>
                 <button class="measure-btn" id="measureBtn">测量</button>
                 <button class="config-btn" id="configBtn">配置</button>
             </div>
@@ -313,6 +329,39 @@
         </div>
     </div>
 
+    <script>
+        function quickRecharge() {
+            // 禁用按钮防止重复点击
+            const btn = document.getElementById('quickRechargeBtn');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> 发送中...';
+
+            fetch('/api/quick-recharge', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('发送成功！请检查PushPlus公众号');
+                } else {
+                    alert('请求失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('请求失败: 网络错误或服务器异常');
+            })
+            .finally(() => {
+                // 恢复按钮状态
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            });
+        }
+    </script>
     <script>
         // 全局变量
         let electricityChart;
@@ -434,7 +483,8 @@
         function setupEventListeners() {
             // 测量按钮
             document.getElementById('measureBtn').addEventListener('click', measureElectricity);
-
+            // 充值按钮 - 添加这行
+            document.getElementById('quickRechargeBtn').addEventListener('click', quickRecharge);
             // 配置按钮
             document.getElementById('configBtn').addEventListener('click', function() {
                 window.location.href = '/config';
@@ -550,6 +600,44 @@
                 showStatus('加载数据失败: ' + error.message, 'error');
             }
         }
+        async function updateRechargeAmount() {
+            try {
+                const response = await fetch('/api/config');
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+
+                const config = await response.json();
+                const amount = config.default_recharge_amount || 100;
+
+                // 更新按钮显示 - 修复按钮文本
+                const btn = document.getElementById('quickRechargeBtn');
+                btn.innerHTML = `💰➡️⚡${amount}￥`;
+
+                console.log('充值金额已更新为:', amount);
+            } catch (error) {
+                console.error('更新充值金额失败:', error);
+                // 设置默认值
+                const btn = document.getElementById('quickRechargeBtn');
+                btn.innerHTML = '💰➡️⚡100￥';
+            }
+        }
+        async function updateRoomInfo() {
+            try {
+                const response = await fetch('/api/room-info');
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
+                }
+
+                const roomData = await response.json();
+                document.getElementById('roomInfo').textContent = `${roomData.name} - 电量监控`;
+            } catch (error) {
+                console.error('获取房间信息失败:', error);
+                // 保持默认标题
+                document.getElementById('roomInfo').textContent = '电量监控系统';
+            }
+        }
+
 
         // 立即测量电量
         async function measureElectricity() {
@@ -598,6 +686,7 @@
                     initDatePickers();
                     setupEventListeners();
                     updateChart(currentRange);
+                    updateRechargeAmount(); // 添加这行
                     console.log('页面初始化完成');
                 } catch (error) {
                     console.error('初始化失败:', error);
