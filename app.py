@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import logging
 from ElectricityQuery import ElectricityQuery  # 电量查询模块
 from Pushplus import PushPlusNotifier  # 推送模块 - 修正类名
+from Buypower import generate_recharge_url, WechatMsgGenerator
 
 # 初始化Flask应用
 app = Flask(__name__)
@@ -30,9 +31,11 @@ LAST_PUSH_TIME = {}  # 记录每个房间最后一次推送的时间
 PUSH_COOLDOWN = 50  # 冷却时间（单位：秒）
 # 默认配置
 # 默认配置
+# 默认配置
 DEFAULT_CONFIG = {
     'threshold': 20.0,
     'query_interval': 30,
+    'default_recharge_amount': 100,  # 新增默认充值金额
     'electricity_params': {
         'url': '',
         'html_encode': 'utf-8',
@@ -191,12 +194,8 @@ def send_multichannel_notify(title, content, push_params, room_identifier=""):
     """
     向多个渠道发送推送消息，支持群组推送
     """
+    current_time = datetime.now().strftime('%H:%M:%S')
     try:
-        # 频率控制
-        current_time = time.time()
-        if room_identifier and current_time - LAST_PUSH_TIME[room_identifier] < PUSH_COOLDOWN:
-            logger.info(f"房间 {room_identifier} 在冷却期内，跳过推送")
-            return True
 
         results = []
         channels = push_params.get('channel', [])
@@ -318,7 +317,7 @@ def setup_scheduler():
 def index():
     """主页面 - 显示当前配置房间的数据"""
     config = get_config()
-    room_info, _, _, _ = parse_room_info(config['electricity_params']['url'])
+    room_info, area_id, build_id, room_id = parse_room_info(config['electricity_params']['url'])
 
     # 获取当前房间的历史数据
     history_data = get_current_room_data()
@@ -326,9 +325,23 @@ def index():
 
     return render_template('index.html',
                            room_info=room_info,
+                           area_id=area_id,
+                           build_id=build_id,
+                           room_id=room_id,
                            history_data=json.dumps(history_data),
                            current_balance=current_balance)
-
+@app.route('/api/config')
+def api_config():
+    """API接口：获取当前配置"""
+    try:
+        config = get_config()
+        return jsonify(config)
+    except Exception as e:
+        logger.error(f"获取配置失败: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'获取配置失败: {str(e)}'
+        }), 500
 
 @app.route('/api/test-push', methods=['POST'])
 def api_test_push():
@@ -489,13 +502,15 @@ def config():
                 valid_channels.append(channel)
         valid_channels = list(set([ch for ch in valid_channels if ch in ['wechat', 'mail', 'sms']]))
 
-        # 获取群组编码
+        # 获取群组编码和默认充值金额
         topic = request.form.get('topic', '').strip()
+        default_recharge_amount = int(request.form.get('default_recharge_amount', 100))
 
         # 更新配置
         new_config = {
             'threshold': float(request.form.get('threshold', 20)),
             'query_interval': int(request.form.get('query_interval', 30)),
+            'default_recharge_amount': default_recharge_amount,  # 新增
             'electricity_params': {
                 'url': request.form.get('electricity_url', ''),
                 'html_encode': request.form.get('html_encode', 'utf-8'),
@@ -504,7 +519,7 @@ def config():
             'push_params': {
                 'token': request.form.get('push_token', ''),
                 'channel': valid_channels,
-                'topic': topic  # 保存群组编码
+                'topic': topic
             }
         }
 
@@ -520,6 +535,67 @@ def reset_config():
     save_config(DEFAULT_CONFIG)
     return jsonify({'status': 'success', 'message': '已恢复默认配置'})
 
+
+@app.route('/api/quick-recharge', methods=['POST'])
+def api_quick_recharge():
+    """快捷充值API - 使用WechatMsgGenerator生成消息"""
+    try:
+        config = get_config()
+
+        # 获取默认充值金额
+        amount = config.get('default_recharge_amount', 100)
+
+        # 生成充值URL
+        query_url = config['electricity_params']['url']
+        recharge_url = generate_recharge_url(query_url, amount)
+
+        if not recharge_url:
+            return jsonify({
+                'status': 'error',
+                'message': '生成充值链接失败，请检查电费查询URL配置'
+            }), 400
+
+        # 使用WechatMsgGenerator生成消息
+        msg_generator = WechatMsgGenerator(recharge_url)
+        title = msg_generator.generate_title()
+        html_content = msg_generator.generate_html()
+
+        # 只通过微信通道推送
+        push_params = config['push_params'].copy()
+        push_params['channel'] = ['wechat']  # 强制使用微信通道
+
+        # 获取房间标识符并确保其在LAST_PUSH_TIME中初始化
+        room_identifier, _, _, _ = get_room_identifier(query_url)
+        if room_identifier not in LAST_PUSH_TIME:
+            LAST_PUSH_TIME[room_identifier] = 0
+
+        # 发送推送
+        result = send_multichannel_notify(title, html_content, push_params, room_identifier)
+
+        if result:
+            return jsonify({
+                'status': 'success',
+                'message': f'充值链接已发送到微信，金额{amount}元'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '推送失败，请检查推送配置'
+            }), 500
+
+    except Exception as e:
+        logger.error(f"快捷充值失败: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'快捷充值失败: {str(e)}'
+        }), 500
+
+    except Exception as e:
+        logger.error(f"快捷充值失败: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': f'快捷充值失败: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     # 初始化数据库
