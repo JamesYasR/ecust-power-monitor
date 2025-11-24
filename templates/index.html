@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>电量监控系统</title>
 
     <!-- 引入必要的库 -->
@@ -71,22 +71,23 @@
             font-size: 1em;
             transition: all 0.3s;
         }
-        /* ===== Recharge-btn 专用样式 ===== */
+        
         .recharge-btn {
-            background: #ffffff;          /* 默认白色 */
+            background: #ffffff;
             color: #333;
         }
 
         .recharge-btn:hover {
-            background: #f2f2f2;          /*  Hover 时略暗一点 */
+            background: #f2f2f2;
             color: #333;
         }
 
         .recharge-btn:disabled {
-            background: #7f8c8d;          /* 与 measure-btn 相同的禁灰 */
+            background: #7f8c8d;
             color: #333;
             cursor: not-allowed;
         }
+        
         .measure-btn {
             background: #27ae60;
         }
@@ -232,7 +233,7 @@
             padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .modal-buttons {
@@ -268,6 +269,131 @@
         .date-range-btn:hover, .date-range-btn.active {
             background: #8e44ad;
             color: white;
+        }
+
+        /* 手机竖屏响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                background: white;
+            }
+            
+            .container {
+                height: auto;
+                min-height: 100vh;
+                border-radius: 10px;
+                margin: 0;
+                width: 100%;
+            }
+            
+            .header {
+                flex-direction: column;
+                padding: 15px 20px;
+                gap: 15px;
+            }
+            
+            .room-info {
+                font-size: 1.2em;
+                text-align: center;
+                order: 1;
+            }
+            
+            .button-group {
+                order: 2;
+                width: 100%;
+                justify-content: center;
+                gap: 8px;
+            }
+            
+            .measure-btn, .config-btn, .recharge-btn {
+                padding: 12px 16px;
+                font-size: 0.9em;
+                flex: 1;
+                max-width: 120px;
+            }
+            
+            .chart-area {
+                padding: 15px 20px;
+            }
+            
+            .chart-container {
+                min-height: 300px;
+                height: 50vh;
+            }
+            
+            .current-balance {
+                font-size: 1em;
+                margin-bottom: 15px;
+            }
+            
+            .balance-value {
+                font-size: 1.2em;
+            }
+            
+            .chart-controls {
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-top: 15px;
+            }
+            
+            .time-btn {
+                padding: 10px 12px;
+                font-size: 0.85em;
+                flex: 1;
+                min-width: calc(50% - 10px);
+            }
+            
+            /* 模态框优化 */
+            .modal-content {
+                min-width: 90%;
+                margin: 20px;
+                padding: 20px;
+            }
+            
+            .date-inputs {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .status-message {
+                margin: 10px 20px;
+                font-size: 0.9em;
+            }
+        }
+
+        /* 超小屏幕优化 */
+        @media (max-width: 480px) {
+            .header {
+                padding: 12px 15px;
+            }
+            
+            .room-info {
+                font-size: 1.1em;
+            }
+            
+            .button-group {
+                gap: 5px;
+            }
+            
+            .measure-btn, .config-btn, .recharge-btn {
+                padding: 10px 12px;
+                font-size: 0.85em;
+                max-width: 110px;
+            }
+            
+            .chart-area {
+                padding: 10px 15px;
+            }
+            
+            .time-btn {
+                min-width: 100%;
+                font-size: 0.8em;
+                padding: 8px 10px;
+            }
+            
+            .current-balance {
+                font-size: 0.95em;
+            }
         }
     </style>
 </head>
