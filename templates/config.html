@@ -224,7 +224,13 @@
                            value="{{ config.electricity_params.url }}" required>
                     <div class="url-example">示例: https://yktyd.ecust.edu.cn/epay/wxpage/wanxiao/eleresult?sysid=1&roomid=103&areaid=2&buildid=3</div>
                 </div>
-
+                <div class="form-group">
+                    <label>默认充值金额（元）</label>
+                    <input type="number" class="form-control" name="default_recharge_amount"
+                           value="{{ config.default_recharge_amount if config.default_recharge_amount else 100 }}"
+                           min="1" step="1" required>
+                    <small class="form-text text-muted">快捷充值按钮的默认充值金额</small>
+                </div>
                 <div class="form-group">
                     <label for="html_encode">网页编码</label>
                     <select name="html_encode" id="html_encode">
