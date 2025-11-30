@@ -49,7 +49,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - /your/path/data:/app/data  # 持久化数据库
+      - /your/path/electricity.db:/app/electricity.db  # 持久化数据库
     environment:
       - PYTHONUNBUFFERED=1
       - DATA_DIR=/app/data  # 明确设置数据目录
